@@ -12,6 +12,10 @@ class HomeController extends Controller
         $products = [];
         if (Storage::exists('products.json')) {
             $products = json_decode(Storage::get('products.json'), true);
+            // Sort products by date in descending order (newest first)
+            usort($products, function ($a, $b) {
+                return strtotime($b['submitted_at']) - strtotime($a['submitted_at']);
+            });
         }
         return view("home", compact("products"));
     }
@@ -38,8 +42,8 @@ class HomeController extends Controller
             $products = json_decode(Storage::get('products.json'), true);
         }
 
-        // Append new product
-        $products[] = $data;
+        // Add new product to the beginning of the array (to show at top)
+        array_unshift($products, $data);
 
         // Save back
         Storage::put('products.json', json_encode($products, JSON_PRETTY_PRINT));
@@ -72,6 +76,11 @@ class HomeController extends Controller
             'total_value' => (float) $validated['quantity'] * $validated['price'],
         ];
 
+        // Re-sort after update
+        usort($products, function ($a, $b) {
+            return strtotime($b['submitted_at']) - strtotime($a['submitted_at']);
+        });
+
         Storage::put('products.json', json_encode($products, JSON_PRETTY_PRINT));
 
         return response()->json([
@@ -79,5 +88,4 @@ class HomeController extends Controller
             'products' => $products,
         ]);
     }
-
 }

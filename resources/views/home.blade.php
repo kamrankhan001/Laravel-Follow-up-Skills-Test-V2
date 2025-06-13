@@ -126,6 +126,9 @@
             }
 
             function renderTable(data) {
+                // Sort data by date in descending order (newest first)
+                data.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+                
                 products = data;
                 productTable.innerHTML = '';
                 let totalSum = 0;
@@ -177,6 +180,7 @@
                 })
                 .then(data => {
                     if (data.status === 'success') {
+                        // Always use the server's response to render the table
                         renderTable(data.products);
                         form.reset();
                         document.getElementById('editIndex').value = '';
