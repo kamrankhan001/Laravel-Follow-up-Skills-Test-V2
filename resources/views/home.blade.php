@@ -31,18 +31,32 @@
                     <h2 class="text-xl font-semibold mb-4 text-green-700 text-center">Add New Product</h2>
 
                     <form id="productForm" class="space-y-4" novalidate>
-                        <input type="text" name="product_name" placeholder="Product Name"
-                            class="w-full border rounded p-2" required>
-                        <input type="number" name="quantity" placeholder="Quantity in Stock"
-                            class="w-full border rounded p-2" required>
-                        <input type="number" name="price" placeholder="Price per Item" class="w-full border rounded p-2"
-                            step="0.01" required>
+                        <div>
+                            <input type="text" name="product_name" placeholder="Product Name"
+                                class="w-full border rounded p-2" required>
+                            <div class="text-sm text-red-600 error-message" data-field="product_name"></div>
+                        </div>
+
+                        <div>
+                            <input type="number" name="quantity" placeholder="Quantity in Stock"
+                                class="w-full border rounded p-2" required>
+                            <div class="text-sm text-red-600 error-message" data-field="quantity"></div>
+                        </div>
+
+                        <div>
+                            <input type="number" name="price" placeholder="Price per Item"
+                                class="w-full border rounded p-2" step="0.01" required>
+                            <div class="text-sm text-red-600 error-message" data-field="price"></div>
+                        </div>
+
                         <div class="text-right">
                             <button type="submit"
-                                class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition cursor-pointer">Add
-                                Product</button>
+                                class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition cursor-pointer">
+                                Add Product
+                            </button>
                         </div>
                     </form>
+
                 </div>
 
                 <!-- Right: Product Table -->
@@ -88,6 +102,11 @@
             const productTable = document.getElementById('productTable');
             const totalSumEl = document.getElementById('totalSum');
 
+            // Clear previous error messages
+            function clearErrors() {
+                document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            }
+
             function renderTable(products) {
                 productTable.innerHTML = '';
                 let totalSum = 0;
@@ -114,12 +133,15 @@
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
+                clearErrors();
+
                 const formData = new FormData(this);
 
                 fetch("{{ route('product.store') }}", {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json' // get validation errors in JSON
                     },
                     body: formData
                 })
@@ -128,15 +150,36 @@
                         if (data.status === 'success') {
                             renderTable(data.products);
                             form.reset();
+                        } else if (data.errors) {
+                            // Show validation errors
+                            Object.keys(data.errors).forEach(field => {
+                                const errorEl = document.querySelector(`.error-message[data-field="${field}"]`);
+                                if (errorEl) {
+                                    errorEl.textContent = data.errors[field][0];
+                                }
+                            });
                         } else {
                             alert('Something went wrong!');
                         }
                     })
-                    .catch(err => console.error(err));
+                    .catch(err => {
+                        if (err.response && err.response.status === 422) {
+                            // Laravel validation failed
+                            err.response.json().then(data => {
+                                Object.keys(data.errors).forEach(field => {
+                                    const errorEl = document.querySelector(`.error-message[data-field="${field}"]`);
+                                    if (errorEl) {
+                                        errorEl.textContent = data.errors[field][0];
+                                    }
+                                });
+                            });
+                        } else {
+                            console.error(err);
+                        }
+                    });
             });
         });
     </script>
-
 
 </body>
 
