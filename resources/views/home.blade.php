@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <title>Product List</title>
 </head>
+
 <body class="bg-gray-50 min-h-screen">
 
     <!-- Page Header -->
@@ -28,12 +30,17 @@
                 <div>
                     <h2 class="text-xl font-semibold mb-4 text-green-700 text-center">Add New Product</h2>
 
-                    <form id="productForm" class="space-y-4">
-                        <input type="text" name="product_name" placeholder="Product Name" class="w-full border rounded p-2" required>
-                        <input type="number" name="quantity" placeholder="Quantity in Stock" class="w-full border rounded p-2" required>
-                        <input type="number" name="price" placeholder="Price per Item" class="w-full border rounded p-2" step="0.01" required>
+                    <form id="productForm" class="space-y-4" novalidate>
+                        <input type="text" name="product_name" placeholder="Product Name"
+                            class="w-full border rounded p-2" required>
+                        <input type="number" name="quantity" placeholder="Quantity in Stock"
+                            class="w-full border rounded p-2" required>
+                        <input type="number" name="price" placeholder="Price per Item" class="w-full border rounded p-2"
+                            step="0.01" required>
                         <div class="text-right">
-                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition cursor-pointer">Add Product</button>
+                            <button type="submit"
+                                class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition cursor-pointer">Add
+                                Product</button>
                         </div>
                     </form>
                 </div>
@@ -66,7 +73,7 @@
                     </table>
                 </div>
 
-            </div> 
+            </div>
             <!-- End Grid -->
 
         </div>
@@ -76,7 +83,61 @@
 
     <!-- AJAX Script -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('productForm');
+            const productTable = document.getElementById('productTable');
+            const totalSumEl = document.getElementById('totalSum');
+
+            function renderTable(products) {
+                productTable.innerHTML = '';
+                let totalSum = 0;
+
+                products.forEach(product => {
+                    totalSum += product.total_value;
+                    productTable.innerHTML += `
+                    <tr>
+                        <td class="border px-4 py-2">${product.product_name}</td>
+                        <td class="border px-4 py-2">${product.quantity}</td>
+                        <td class="border px-4 py-2">$${product.price.toFixed(2)}</td>
+                        <td class="border px-4 py-2">${new Date(product.submitted_at).toLocaleString('en-US')}</td>
+                        <td class="border px-4 py-2">$${product.total_value.toFixed(2)}</td>
+                        <td class="border px-4 py-2 text-center">-</td>
+                    </tr>`;
+                });
+
+                totalSumEl.textContent = `$${totalSum.toFixed(2)}`;
+            }
+
+            // Render products on page load (from PHP passed data)
+            const productsFromPHP = @json($products);
+            renderTable(productsFromPHP);
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch("{{ route('product.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: formData
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            renderTable(data.products);
+                            form.reset();
+                        } else {
+                            alert('Something went wrong!');
+                        }
+                    })
+                    .catch(err => console.error(err));
+            });
+        });
     </script>
 
+
 </body>
+
 </html>
