@@ -31,6 +31,9 @@
                     <h2 class="text-xl font-semibold mb-4 text-green-700 text-center">Add New Product</h2>
 
                     <form id="productForm" class="space-y-4" novalidate>
+                        @csrf
+                        <input type="hidden" name="index" id="editIndex" value="">
+                        <input type="hidden" name="_method" id="formMethod" value="POST">
                         <div>
                             <input type="text" name="product_name" placeholder="Product Name"
                                 class="w-full border rounded p-2" required>
@@ -97,8 +100,23 @@
 
     <!-- AJAX Script -->
     <script>
+        let products = [];
+        let form;
+
+        window.editProduct = function (index) {
+            const product = products[index];
+            form.product_name.value = product.product_name;
+            form.quantity.value = product.quantity;
+            form.price.value = product.price;
+            document.getElementById('editIndex').value = index;
+            document.getElementById('formMethod').value = 'PUT';
+
+            // Change button text
+            form.querySelector('button[type="submit"]').textContent = 'Update Product';
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('productForm');
+            form = document.getElementById('productForm');
             const productTable = document.getElementById('productTable');
             const totalSumEl = document.getElementById('totalSum');
 
@@ -107,11 +125,12 @@
                 document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
             }
 
-            function renderTable(products) {
+            function renderTable(data) {
+                products = data;
                 productTable.innerHTML = '';
                 let totalSum = 0;
 
-                products.forEach(product => {
+                products.forEach((product, index) => {
                     totalSum += product.total_value;
                     productTable.innerHTML += `
                     <tr>
@@ -120,7 +139,9 @@
                         <td class="border px-4 py-2">$${product.price.toFixed(2)}</td>
                         <td class="border px-4 py-2">${new Date(product.submitted_at).toLocaleString('en-US')}</td>
                         <td class="border px-4 py-2">$${product.total_value.toFixed(2)}</td>
-                        <td class="border px-4 py-2 text-center">-</td>
+                        <td class="border px-4 py-2 text-center">
+                            <button onclick="editProduct(${index})" class="bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer">Edit</button>
+                        </td>
                     </tr>`;
                 });
 
@@ -136,47 +157,47 @@
                 clearErrors();
 
                 const formData = new FormData(this);
+                const isUpdate = formData.get('index');
 
-                fetch("{{ route('product.store') }}", {
+                let url = isUpdate ? "{{ route('product.update') }}" : "{{ route('product.store') }}";
+                
+                fetch(url, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json' // get validation errors in JSON
+                        'Accept': 'application/json'
                     },
                     body: formData
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            renderTable(data.products);
-                            form.reset();
-                        } else if (data.errors) {
-                            // Show validation errors
-                            Object.keys(data.errors).forEach(field => {
-                                const errorEl = document.querySelector(`.error-message[data-field="${field}"]`);
-                                if (errorEl) {
-                                    errorEl.textContent = data.errors[field][0];
-                                }
-                            });
-                        } else {
-                            alert('Something went wrong!');
-                        }
-                    })
-                    .catch(err => {
-                        if (err.response && err.response.status === 422) {
-                            // Laravel validation failed
-                            err.response.json().then(data => {
-                                Object.keys(data.errors).forEach(field => {
-                                    const errorEl = document.querySelector(`.error-message[data-field="${field}"]`);
-                                    if (errorEl) {
-                                        errorEl.textContent = data.errors[field][0];
-                                    }
-                                });
-                            });
-                        } else {
-                            console.error(err);
-                        }
-                    });
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => Promise.reject(err));
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderTable(data.products);
+                        form.reset();
+                        document.getElementById('editIndex').value = '';
+                        document.getElementById('formMethod').value = 'POST';
+                        form.querySelector('button[type="submit"]').textContent = 'Add Product';
+                    }
+                })
+                .catch(err => {
+                    if (err.errors) {
+                        // Show validation errors
+                        Object.keys(err.errors).forEach(field => {
+                            const errorEl = document.querySelector(`.error-message[data-field="${field}"]`);
+                            if (errorEl) {
+                                errorEl.textContent = err.errors[field][0];
+                            }
+                        });
+                    } else {
+                        console.error(err);
+                        alert('Something went wrong!');
+                    }
+                });
             });
         });
     </script>

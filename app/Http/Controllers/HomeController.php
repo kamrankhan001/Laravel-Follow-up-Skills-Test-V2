@@ -13,7 +13,7 @@ class HomeController extends Controller
         if (Storage::exists('products.json')) {
             $products = json_decode(Storage::get('products.json'), true);
         }
-        return view("home" , compact("products"));
+        return view("home", compact("products"));
     }
 
     public function store(Request $request)
@@ -49,4 +49,35 @@ class HomeController extends Controller
             'products' => $products,
         ]);
     }
+
+    public function update(Request $request)
+    {
+        $validated = $request->validate([
+            'product_name' => 'required|string',
+            'quantity' => 'required|integer|min:0',
+            'price' => 'required|numeric|min:0',
+            'index' => 'required|integer',
+        ]);
+
+        $products = [];
+        if (Storage::exists('products.json')) {
+            $products = json_decode(Storage::get('products.json'), true);
+        }
+
+        $products[$validated['index']] = [
+            'product_name' => $validated['product_name'],
+            'quantity' => (int) $validated['quantity'],
+            'price' => (float) $validated['price'],
+            'submitted_at' => now()->toDateTimeString(),
+            'total_value' => (float) $validated['quantity'] * $validated['price'],
+        ];
+
+        Storage::put('products.json', json_encode($products, JSON_PRETTY_PRINT));
+
+        return response()->json([
+            'status' => 'success',
+            'products' => $products,
+        ]);
+    }
+
 }
