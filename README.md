@@ -16,7 +16,7 @@ This is a simple Laravel-based web application for adding, updating, and listing
 
 ## 🛠 Tech Stack
 
-- Laravel 10+
+- Laravel 12+
 - Tailwind CSS
 - JavaScript (vanilla)
 - JSON file storage (`storage/app/products.json`)
@@ -42,7 +42,7 @@ This is a simple Laravel-based web application for adding, updating, and listing
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/kamrankhan001/Laravel-Follow-up-Skills-Test-V2.git
+   git clone https://github.com/kamrankhan001/laravel-json-storage.git
    cd your-repo
    ```
 
@@ -76,7 +76,7 @@ This is a simple Laravel-based web application for adding, updating, and listing
 | Method | URI             | Description       |
 |--------|------------------|-------------------|
 | GET    | `/`              | Show product list |
-| POST   | `/store`         | Add new product   |
+| POST   | `/product/store`         | Add new product   |
 | PUT    | `/product/update`| Update product    |
 
 ## 📌 Notes
